@@ -51,7 +51,7 @@
 
   <ul id="list"></ul>
 
-  <footer>In-memory storage, so notes reset when the service restarts. JSON API: <a href="/api/info">/api/info</a> · <a href="/notes">/notes</a> · <a href="/health">/health</a></footer>
+  <footer>Stored in <code id="storage">…</code>. JSON API: <a href="/api/info">/api/info</a> · <a href="/notes">/notes</a> · <a href="/health">/health</a></footer>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -64,6 +64,7 @@ async function info() {
     $('status').textContent = 'up ' + d.uptime;
     $('meta').innerHTML = '';
     $('meta').append(d.message + ' · container ', Object.assign(document.createElement('code'), { textContent: d.hostname }));
+    $('storage').textContent = d.storage;
   } catch {
     $('dot').className = 'dot';
     $('status').textContent = 'unreachable';

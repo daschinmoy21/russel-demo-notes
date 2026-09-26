@@ -1,6 +1,6 @@
 # russel-demo-notes
 
-A tiny in-memory JSON notes API (Go stdlib, no dependencies) for demoing [Russel](https://github.com/daschinmoy21/russel) deploys from a git URL.
+A small notes web app and JSON API (Go stdlib, no dependencies) for demoing [Russel](https://github.com/daschinmoy21/russel) deploys from a git URL.
 
 ## Deploy with Russel
 
@@ -8,14 +8,29 @@ A tiny in-memory JSON notes API (Go stdlib, no dependencies) for demoing [Russel
 russel deploy https://github.com/daschinmoy21/russel-demo-notes.git
 ```
 
-`Russelfile.toml` sets the service name (`notes-api`), port 3000, 128mb memory, and the `container` runtime. `flake.nix` builds the binary.
+Then open http://127.0.0.1:3100 (or http://notes-api.russel.local with Traefik routing).
+
+`Russelfile.toml` fully describes the deployment, with every field written out:
+
+| Field | Value | Why |
+|---|---|---|
+| `service.type` | `container` | Rootless Podman |
+| `service.port` | `3000` | App listens here; Russel injects it as `PORT` |
+| `service.memory` | `128mb` | Plenty for a static Go binary |
+| `service.restart` | `unless-stopped` | Podman restarts it if it crashes |
+| `[ingress].host` | `notes-api.russel.local` | Traefik route |
+| `[ingress].port` | `3100` | Stable host port across updates |
+| `[[volumes]]` `data` → `/data` | `rw`, `keep` | Notes persist across restarts, updates, and destroy |
+| `service.env.NOTES_FILE` | `/data/notes.json` | Where the app stores notes |
+
+`flake.nix` builds the binary.
 
 ## Routes
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | Web UI for adding and deleting notes |
-| GET | `/api/info` | Service info as JSON (greeting, hostname, uptime) |
+| GET | `/api/info` | Service info as JSON (greeting, hostname, storage, uptime) |
 | GET | `/health` | `ok` |
 | GET | `/notes` | List notes |
 | POST | `/notes` | Create: `{"text": "..."}` |
@@ -23,15 +38,20 @@ russel deploy https://github.com/daschinmoy21/russel-demo-notes.git
 | DELETE | `/notes/{id}` | Delete a note |
 
 ```bash
-curl -X POST http://HOST:PORT/notes -d '{"text":"hello"}'
-curl http://HOST:PORT/notes
+curl -X POST http://127.0.0.1:3100/notes -d '{"text":"hello"}'
+curl http://127.0.0.1:3100/notes
 ```
 
-Notes are held in memory and reset on restart. Set `GREETING` in `[service.env]` to change the message shown in the UI and at `/api/info`.
+## Configuration
+
+| Env | Default | Meaning |
+|---|---|---|
+| `NOTES_FILE` | unset (memory only) | JSON file to persist notes to |
+| `GREETING` | `hello from russel` | Message shown in the UI and at `/api/info` |
 
 ## Run locally
 
 ```bash
-nix build && PORT=3000 ./result/bin/notes-api
+nix build && PORT=3000 NOTES_FILE=./notes.json ./result/bin/notes-api
 # or: go run .
 ```

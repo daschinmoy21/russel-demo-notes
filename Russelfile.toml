@@ -1,13 +1,36 @@
-# notes-api — in-memory JSON notes service.
+# notes-api — notes web app + JSON API, persisted to a managed volume.
 # Deploy: russel deploy https://github.com/daschinmoy21/russel-demo-notes.git
+#
+# Every field is written out, including ones left at their defaults, so this
+# file fully describes the deployment. Schema: docs/reference/russelfile.md.
 
 [service]
-name = "notes-api"
+name = "notes-api"        # service id for deploy/status/logs/update/destroy
 source = "."
-port = 3000
+port = 3000               # guest listen port; Russel injects it as PORT
 memory = "128mb"
-type = "container"
-bin = "notes-api"
+type = "container"        # rootless Podman
+guest = "busybox"
+bin = "notes-api"         # runs $out/bin/notes-api from flake.nix
+cpus = 1                  # microVM only; ignored for containers
+debug = false             # no shell tools in the rootfs (static Go binary)
+restart = "unless-stopped"
+args = []
 
 [service.env]
 GREETING = "hello from russel"
+NOTES_FILE = "/data/notes.json"
+
+# Host-facing route. host is the Traefik Host() name; port pins the host-side
+# backend so it stays the same across updates.
+[ingress]
+host = "notes-api.russel.local"
+port = 3100
+
+# Notes survive restarts, updates, and destroy (unless --delete-volumes).
+# Lives at /var/lib/russel/notes-api/volumes/data on the host.
+[[volumes]]
+name = "data"
+guest = "/data"
+rw = true
+keep = true
