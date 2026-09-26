@@ -2,6 +2,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -23,6 +24,9 @@ type store struct {
 	nextID int
 	notes  map[int]Note
 }
+
+//go:embed static/index.html
+var indexHTML []byte
 
 var (
 	db      = &store{nextID: 1, notes: map[int]Note{}}
@@ -48,13 +52,18 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(indexHTML)
+	})
+
+	mux.HandleFunc("GET /api/info", func(w http.ResponseWriter, r *http.Request) {
 		host, _ := os.Hostname()
 		writeJSON(w, 200, map[string]any{
 			"service":  "notes-api",
 			"message":  greeting,
 			"hostname": host,
 			"uptime":   time.Since(started).Round(time.Second).String(),
-			"routes":   []string{"GET /health", "GET /notes", "POST /notes", "GET /notes/{id}", "DELETE /notes/{id}"},
+			"routes":   []string{"GET /", "GET /api/info", "GET /health", "GET /notes", "POST /notes", "GET /notes/{id}", "DELETE /notes/{id}"},
 		})
 	})
 
