@@ -1,0 +1,13 @@
+# notes-api — in-memory JSON notes service.
+# Deploy: russel deploy https://github.com/daschinmoy21/russel-demo-notes.git
+
+[service]
+name = "notes-api"
+source = "."
+port = 3000
+memory = "128mb"
+type = "container"
+bin = "notes-api"
+
+[service.env]
+GREETING = "hello from russel"
